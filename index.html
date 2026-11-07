@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El átomo de Schrödinger · Simulación interactiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e1f; --bg2:#141a3a;
+    --pos:#4cc9f0; --neg:#ff6b9d; --gold:#ffd166;
+    --ink:#ffffff; --ink2:rgba(255,255,255,.78); --ink3:rgba(255,255,255,.55);
+    --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.10); --line:rgba(255,255,255,.12);
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{
+    background:radial-gradient(ellipse at 50% 45%, var(--bg2) 0%, var(--bg) 70%);
+    font-family:'Poppins','Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+    color:var(--ink); font-size:16px; line-height:1.4;
+  }
+  #c3d{position:fixed;inset:0;display:block}
+
+  .glass{
+    background:var(--glass); border:1px solid var(--line); border-radius:var(--r);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  h2{font-size:22px;font-weight:600;margin:0 0 10px;letter-spacing:.2px}
+  h3{font-size:17px;font-weight:600;margin:14px 0 6px;color:var(--ink2)}
+  p{margin:0 0 8px;color:var(--ink2);font-size:16px}
+  small,.muted{color:var(--ink3);font-size:14px}
+
+  /* ---------- paneles laterales ---------- */
+  .side{
+    position:fixed; top:18px; padding:18px 18px 16px; width:280px;
+    max-height:calc(100vh - 162px); overflow-y:auto; overscroll-behavior:contain;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6px}
+  #panel-left{left:18px}
+  #panel-right{right:18px;width:330px}
+  .lab-ui{opacity:0;pointer-events:none;transform:translateY(6px)}
+  .lab-ui.on{opacity:1;pointer-events:auto;transform:none}
+
+  .btn{
+    font-family:inherit; font-size:15px; font-weight:500; color:var(--ink);
+    background:var(--glass2); border:1px solid var(--line); border-radius:10px;
+    padding:8px 12px; cursor:pointer; transition:background .2s, border-color .2s, transform .1s;
+  }
+  .btn:hover{background:rgba(255,255,255,.16)}
+  .btn:active{transform:scale(.97)}
+  .btn.active{background:rgba(76,201,240,.22);border-color:rgba(76,201,240,.7);color:#fff}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.ghost{background:transparent}
+  .orb-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .orb-grid .btn{padding:7px 10px;min-width:48px;text-align:center}
+  .orb-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .orb-row .lvl{width:38px;color:var(--ink3);font-size:14px;flex:none}
+
+  .selects{display:flex;gap:8px;margin-top:6px}
+  .selects label{flex:1;display:flex;flex-direction:column;font-size:13px;color:var(--ink3)}
+  select{
+    font-family:inherit;font-size:16px;color:#fff;background:rgba(255,255,255,.08);
+    border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin-top:3px
+  }
+  select option{background:#161c3d;color:#fff}
+
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07);font-size:15px;color:var(--ink2);cursor:pointer}
+  .toggle:first-of-type{border-top:none}
+  .sw{position:relative;width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,.14);flex:none;transition:background .2s}
+  .sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+  input[type=checkbox]{display:none}
+  input[type=checkbox]:checked + .sw{background:var(--pos)}
+  input[type=checkbox]:checked + .sw::after{left:23px}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.16);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--pos);box-shadow:0 0 12px rgba(76,201,240,.6);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--pos);cursor:pointer}
+
+  canvas.chart{width:100%;display:block;border-radius:10px;background:rgba(0,0,0,.18)}
+  .legend-row{display:flex;gap:14px;align-items:center;font-size:14px;color:var(--ink3);margin-top:6px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+  details{border-top:1px solid rgba(255,255,255,.07);padding-top:8px;margin-top:10px}
+  summary{cursor:pointer;font-size:17px;font-weight:600;color:var(--ink2);list-style:none;display:flex;justify-content:space-between;align-items:center}
+  summary::after{content:'+';font-size:20px;color:var(--ink3)}
+  details[open] summary::after{content:'–'}
+
+  /* ---------- título / escena ---------- */
+  #caption{
+    position:fixed;top:18px;left:50%;transform:translateX(-50%);
+    width:min(620px, calc(100vw - 700px));min-width:300px;text-align:center;pointer-events:none;
+    transition:opacity .25s;
+  }
+  #caption .scale{font-size:30px;font-weight:700;letter-spacing:.5px;text-shadow:0 2px 18px rgba(0,0,0,.6)}
+  #caption .title{font-size:19px;color:var(--pos);font-weight:600;margin-top:2px}
+  #caption .text{font-size:18px;color:var(--ink2);margin-top:6px;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+
+  /* ---------- barra inferior ---------- */
+  #bottom{
+    position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+    width:min(1080px, calc(100vw - 32px));padding:12px 18px;
+    display:flex;align-items:center;gap:22px;
+  }
+  #zoomBox{flex:1 1 380px;min-width:300px}
+  #zoomBox .row{display:flex;align-items:center;gap:10px}
+  #zoomBox .row span{font-size:14px;color:var(--ink3);white-space:nowrap}
+  #dots{display:flex;justify-content:space-between;margin:8px 6px 0}
+  #dots button{
+    all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;color:var(--ink3);width:90px;text-align:center;line-height:1.15
+  }
+  #dots button i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid transparent;transition:all .25s}
+  #dots button.active i{background:var(--pos);box-shadow:0 0 12px var(--pos)}
+  #dots button.active{color:#fff}
+
+  #measBox{display:flex;align-items:center;gap:10px;flex:none;transition:opacity .35s}
+  #measBox.off{opacity:.18;pointer-events:none}
+  #btnMeasure{
+    font-size:20px;font-weight:600;padding:14px 22px;border-radius:14px;
+    background:linear-gradient(135deg, rgba(76,201,240,.35), rgba(255,107,157,.3));
+    border:1px solid rgba(255,255,255,.3);box-shadow:0 0 28px rgba(76,201,240,.25);
+  }
+  #btnMeasure:hover{background:linear-gradient(135deg, rgba(76,201,240,.5), rgba(255,107,157,.42))}
+  .measCol{display:flex;flex-direction:column;gap:5px}
+  .measCol .btn{font-size:14px;padding:4px 10px}
+  #measCount{font-size:15px;color:var(--ink2);text-align:center;min-width:120px}
+  #measCount b{font-size:24px;color:#fff;display:block;line-height:1}
+
+  /* ---------- etiquetas 3D ---------- */
+  .lbl3d{position:fixed;transform:translate(-50%,0);padding:5px 10px;font-size:15px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s;border-radius:10px}
+  #lblBohr{color:var(--gold)}
+  #lblSch{color:var(--pos)}
+
+  /* ---------- modal profesor ---------- */
+  #modal{position:fixed;inset:0;background:rgba(5,8,20,.6);display:none;align-items:center;justify-content:center;z-index:50}
+  #modal.open{display:flex}
+  #modal .box{width:min(760px, calc(100vw - 40px));max-height:calc(100vh - 60px);overflow:auto;padding:26px 30px}
+  #modal .box h2{font-size:24px}
+  #modal .box h3{color:var(--pos);font-size:18px;margin-top:16px}
+  #modal ul{margin:0 0 6px 18px;padding:0;color:var(--ink2)}
+  #modal li{margin-bottom:5px}
+  #modal .close{float:right}
+
+  #hint{position:fixed;left:50%;bottom:122px;transform:translateX(-50%);font-size:15px;color:var(--ink3);pointer-events:none;transition:opacity .5s}
+  #photonInfo{font-size:15px;color:var(--ink2);min-height:22px;margin-top:6px}
+  #fps{position:fixed;left:18px;bottom:8px;font-size:11px;color:rgba(255,255,255,.25);pointer-events:none}
+
+  @media (max-width:1200px){
+    .side{width:250px;padding:14px}
+    #panel-right{width:290px}
+    #caption{width:min(500px, calc(100vw - 580px))}
+  }
+</style>
+</head>
+<body>
+<canvas id="c3d"></canvas>
+
+<!-- ===== Escena actual ===== -->
+<div id="caption">
+  <div class="scale" id="capScale">≈ 10⁻³ m</div>
+  <div class="title" id="capTitle">Un grano de sal</div>
+  <div class="text" id="capText">Todo lo que ves está hecho de átomos.</div>
+</div>
+<div id="hint">Usa la rueda del mouse o el deslizador para acercarte · arrastra para girar</div>
+
+<!-- ===== Panel izquierdo: orbitales ===== -->
+<aside id="panel-left" class="glass side lab-ui">
+  <h2>Orbitales del hidrógeno</h2>
+  <p class="muted" style="margin-bottom:10px">Elige el estado del electrón</p>
+  <div class="orb-row"><span class="lvl">n = 1</span><div class="orb-grid"><button class="btn orb" data-o="1,0,0">1s</button></div></div>
+  <div class="orb-row"><span class="lvl">n = 2</span><div class="orb-grid">
+    <button class="btn orb" data-o="2,0,0">2s</button>
+    <button class="btn orb" data-o="2,1,1">2p<sub>x</sub></button>
+    <button class="btn orb" data-o="2,1,-1">2p<sub>y</sub></button>
+    <button class="btn orb" data-o="2,1,0">2p<sub>z</sub></button>
+  </div></div>
+  <div class="orb-row"><span class="lvl">n = 3</span><div class="orb-grid">
+    <button class="btn orb" data-o="3,0,0">3s</button>
+    <button class="btn orb" data-o="3,1,1">3p<sub>x</sub></button>
+    <button class="btn orb" data-o="3,1,-1">3p<sub>y</sub></button>
+    <button class="btn orb" data-o="3,1,0">3p<sub>z</sub></button>
+    <button class="btn orb" data-o="3,2,0">3d<sub>z²</sub></button>
+    <button class="btn orb" data-o="3,2,-2">3d<sub>xy</sub></button>
+    <button class="btn orb" data-o="3,2,1">3d<sub>xz</sub></button>
+    <button class="btn orb" data-o="3,2,-1">3d<sub>yz</sub></button>
+    <button class="btn orb" data-o="3,2,2">3d<sub>x²-y²</sub></button>
+  </div></div>
+
+  <h3>Números cuánticos</h3>
+  <div class="selects">
+    <label>n (nivel)<select id="selN"></select></label>
+    <label>l (forma)<select id="selL"></select></label>
+    <label>m (orientación)<select id="selM"></select></label>
+  </div>
+
+  <h3>Opciones</h3>
+  <label class="toggle">Color por signo de ψ <input type="checkbox" id="tgPhase" checked><span class="sw"></span></label>
+  <label class="toggle">Mostrar nodos <input type="checkbox" id="tgNodes" checked><span class="sw"></span></label>
+  <label class="toggle">Rotación automática <input type="checkbox" id="tgRotate" checked><span class="sw"></span></label>
+  <label class="toggle"><b style="color:#fff">Comparar con el modelo de Bohr</b> <input type="checkbox" id="tgBohr"><span class="sw"></span></label>
+  <div class="legend-row" style="margin-top:8px">
+    <span><i class="dot" style="background:var(--pos)"></i>ψ positiva</span>
+    <span><i class="dot" style="background:var(--neg)"></i>ψ negativa</span>
+    <span><i class="dot" style="background:var(--gold)"></i>núcleo</span>
+  </div>
+  <label style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:14px;color:var(--ink3)">Puntos de la nube
+    <select id="selPts" style="font-size:14px;padding:4px 8px"><option value="20000">20 000</option><option value="40000" selected>40 000</option><option value="60000">60 000</option></select>
+  </label>
+</aside>
+
+<!-- ===== Panel derecho: explicación, gráficas ===== -->
+<aside id="panel-right" class="glass side lab-ui">
+  <h2>¿Qué estoy viendo?</h2>
+  <p id="orbName" style="color:var(--pos);font-weight:600;font-size:18px;margin-bottom:4px">Orbital 1s</p>
+  <p id="orbDesc"></p>
+  <p id="orbNodes" class="muted"></p>
+
+  <h3>Probabilidad radial P(r) = r²·R(r)²</h3>
+  <canvas id="cvRadial" class="chart" width="294" height="150"></canvas>
+  <p class="muted" style="margin-top:6px" id="radialNote"></p>
+
+  <h3>Niveles de energía · E = −13,6 / n² eV</h3>
+  <canvas id="cvEnergy" class="chart" width="294" height="200"></canvas>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn" id="btnExcite" style="flex:1">⬆ Excitar electrón</button>
+    <button class="btn" id="btnRelax" style="flex:1">⬇ Emitir fotón</button>
+  </div>
+  <div id="photonInfo"></div>
+
+  <details>
+    <summary>Principio de incertidumbre</summary>
+    <p class="muted" style="margin-top:8px">Cuanto mejor conocemos la posición del electrón, peor conocemos su momento (su velocidad). Mueve el deslizador:</p>
+    <input type="range" id="slHeis" min="0.12" max="1" step="0.01" value="0.5">
+    <canvas id="cvHeis" class="chart" width="294" height="120" style="margin-top:8px"></canvas>
+    <p class="muted" style="margin-top:6px">Δx · Δp ≥ ħ/2 &nbsp;·&nbsp; Es una ilustración conceptual, no un cálculo del átomo.</p>
+  </details>
+
+  <button class="btn ghost" id="btnTeacher" style="width:100%;margin-top:14px">📋 Nota para el profesor</button>
+</aside>
+
+<!-- ===== Barra inferior ===== -->
+<div id="bottom" class="glass">
+  <div id="zoomBox">
+    <div class="row"><span>Lejos</span><input type="range" id="slZoom" min="0" max="4" step="0.001" value="0"><span>Cerca</span></div>
+    <div id="dots">
+      <button data-i="0"><i></i>Grano de sal</button>
+      <button data-i="1"><i></i>Red de NaCl</button>
+      <button data-i="2"><i></i>El átomo</button>
+      <button data-i="3"><i></i>El núcleo</button>
+      <button data-i="4"><i></i>Laboratorio cuántico</button>
+    </div>
+  </div>
+  <div id="measBox" class="off">
+    <button class="btn" id="btnMeasure">⚡ Medir posición del electrón</button>
+    <div class="measCol">
+      <button class="btn" id="btnMeasure25">Medir 25 veces</button>
+      <button class="btn" id="btnShowCloud">Ver la nube completa</button>
+      <button class="btn" id="btnClear">Borrar mediciones</button>
+    </div>
+    <div id="measCount"><b>0</b>mediciones</div>
+  </div>
+</div>
+
+<div id="lblBohr" class="glass lbl3d">Bohr: trayectoria definida</div>
+<div id="lblSch" class="glass lbl3d">Schrödinger: probabilidad</div>
+<div id="fps"></div>
+
+<!-- ===== Nota para el profesor ===== -->
+<div id="modal">
+  <div class="glass box">
+    <button class="btn close" id="btnCloseModal">Cerrar ✕</button>
+    <h2>Nota para el profesor</h2>
+    <p>Esta simulación mezcla física real con recursos didácticos. Conviene tener claro qué es cada cosa.</p>
+    <h3>Lo que es físicamente real</h3>
+    <ul>
+      <li>Las formas de las nubes y la gráfica P(r) salen de las <b>soluciones exactas de la ecuación de Schrödinger</b> para el hidrógeno: parte radial R<sub>nl</sub>(r) con polinomios asociados de Laguerre y parte angular con armónicos esféricos reales.</li>
+      <li>Cada punto de la nube se genera por <b>muestreo por rechazo de |ψ|²</b>. La densidad de puntos es proporcional a la probabilidad real de encontrar el electrón en esa región. Lo mismo vale para cada "medición".</li>
+      <li>Los nodos (radiales y angulares) están en las posiciones correctas, y su número es n − 1.</li>
+      <li>Las energías E = −13,6/n² eV y las longitudes de onda de los fotones emitidos o absorbidos son las del hidrógeno (series de Lyman, Balmer y Paschen).</li>
+      <li>El radio más probable del 1s coincide con el radio de Bohr a₀ ≈ 0,053 nm.</li>
+    </ul>
+    <h3>Lo que es una simplificación</h3>
+    <ul>
+      <li>El <b>zoom no es proporcional</b> a la escala real: cada escena está separada por un factor fijo, no por los 10⁵ o 10⁶ reales. Las etiquetas de escala sí son correctas.</li>
+      <li>El <b>núcleo se muestra miles de veces más grande</b> de lo que le corresponde. A escala real, con el átomo del tamaño del salón, el núcleo sería menor que un grano de arena.</li>
+      <li>En la red de NaCl las esferas representan iones sin su estructura electrónica. El átomo de la escena 3 es genérico; el laboratorio usa hidrógeno porque es el único átomo con solución exacta.</li>
+      <li>La <b>comparación con Bohr</b> es didáctica: muestra un modelo histórico ya superado. El radio de la órbita (n²·a₀) es el de Bohr, pero la velocidad con que gira el puntito es solo visual.</li>
+      <li>Los colores de fase (azul/coral) son una convención. El signo de ψ no se puede medir; solo |ψ|² es observable. Sirven para hablar de nodos y de enlaces más adelante.</li>
+      <li>Para que la nube quepa en pantalla, cada orbital se reescala. Un 3d es en realidad mucho más grande que un 1s (fíjate en el eje r de la gráfica).</li>
+    </ul>
+    <h3>Lo que es solo una analogía</h3>
+    <ul>
+      <li>El panel de <b>Heisenberg</b> muestra la relación cualitativa Δx·Δp ≥ ħ/2 con dos curvas de campana. No es un cálculo del átomo de hidrógeno.</li>
+      <li>El "<b>colapso</b>" al medir representa el postulado de la medición. En un átomo real no se mide la posición del electrón sin perturbarlo fuertemente; el valor de la animación es mostrar que muchas mediciones reconstruyen la distribución.</li>
+    </ul>
+    <h3>Frase que conviene evitar</h3>
+    <p>"El electrón está en todas partes a la vez". Es más preciso decir: <b>el electrón no tiene una trayectoria definida; solo podemos hablar de la probabilidad de encontrarlo en cada región.</b></p>
+    <h3>Sugerencia de uso en clase</h3>
+    <ul>
+      <li>Recorrer el zoom completo antes de entrar al laboratorio (2 min).</li>
+      <li>Con el 1s, pulsar "Medir" varias veces y preguntar dónde creen que aparecerá el siguiente punto. Luego "Medir 25 veces" hasta ~200.</li>
+      <li>Activar la comparación con Bohr y discutir qué modelo predice y qué modelo "dibuja".</li>
+      <li>Cambiar a 2p y 3d para hablar de nodos y de la forma de los orbitales que usarán en enlaces químicos.</li>
+    </ul>
+    <p class="muted">Atajos: flechas ← → cambian de escena · tecla M mide · tecla B activa Bohr. Enlace directo al laboratorio: añade <code>#escena=5</code> a la dirección del archivo.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+// Parámetros opcionales en la dirección: #escena=5&orbital=3,2,0&bohr=1&mediciones=200&rapido=1
+const HASH = new URLSearchParams(location.hash.replace('#', ''));
+const FAST = HASH.get('rapido') === '1';   // genera la nube sin animación (útil para pruebas)
+
+/* =====================================================================
+   1. FÍSICA DEL HIDRÓGENO (unidades: radio de Bohr a₀ = 1)
+   ===================================================================== */
+const Phys = (() => {
+  const fact = n => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; };
+  // Polinomio asociado de Laguerre L_k^α(x) por recurrencia
+  function laguerre(k, a, x){
+    if (k === 0) return 1;
+    let l0 = 1, l1 = 1 + a - x;
+    for (let i = 1; i < k; i++){ const l2 = ((2*i + 1 + a - x)*l1 - (i + a)*l0)/(i + 1); l0 = l1; l1 = l2; }
+    return l1;
+  }
+  // Parte radial normalizada R_nl(r)
+  function radial(n, l, r){
+    const rho = 2*r/n;
+    const norm = Math.sqrt(Math.pow(2/n, 3) * fact(n - l - 1) / (2*n*fact(n + l)));
+    return norm * Math.exp(-rho/2) * Math.pow(rho, l) * laguerre(n - l - 1, 2*l + 1, rho);
+  }
+  // Armónicos esféricos reales. (x,y,z) vector unitario. Convención: m=+1→px, m=-1→py, m=0→pz, etc.
+  const C0 = 1/Math.sqrt(4*Math.PI);
+  function angular(l, m, x, y, z){
+    if (l === 0) return C0;
+    if (l === 1){ const k = Math.sqrt(3)*C0; return k*(m === 0 ? z : m === 1 ? x : y); }
+    if (l === 2){
+      const k = Math.sqrt(15)*C0;
+      switch (m){
+        case 0:  return Math.sqrt(5)*C0*0.5*(3*z*z - 1);
+        case 1:  return k*x*z;
+        case -1: return k*y*z;
+        case 2:  return k*0.5*(x*x - y*y);
+        case -2: return k*x*y;
+      }
+    }
+    return C0;
+  }
+  // Datos numéricos de un orbital: r máximo, máximo de P(r), nodos, etc.
+  function orbitalInfo(n, l, m){
+    const rSearch = 4*n*n + 8, steps = 6000, dr = rSearch/steps;
+    const rs = new Float64Array(steps + 1), P = new Float64Array(steps + 1);
+    let total = 0, Pmax = 0, rMostProb = 0;
+    const radialNodes = [];
+    let prevR = radial(n, l, 1e-6);
+    for (let i = 0; i <= steps; i++){
+      const r = i*dr, R = radial(n, l, r), p = r*r*R*R;
+      rs[i] = r; P[i] = p; total += p*dr;
+      if (p > Pmax){ Pmax = p; rMostProb = r; }
+      if (i > 0 && r > 1e-3 && Math.sign(R) !== Math.sign(prevR) && Math.sign(R) !== 0){
+        // bisección para afinar el nodo
+        let a = r - dr, b = r;
+        for (let k = 0; k < 40; k++){ const c = (a + b)/2; (Math.sign(radial(n, l, c)) === Math.sign(radial(n, l, a))) ? a = c : b = c; }
+        radialNodes.push((a + b)/2);
+      }
+      prevR = R;
+    }
+    // radio que encierra el 99,3 % de la probabilidad
+    let acc = 0, rmax = rSearch;
+    for (let i = 0; i <= steps; i++){ acc += P[i]*dr; if (acc/total >= 0.993){ rmax = rs[i]; break; } }
+    // máximo de |Y|² sobre la esfera (numérico, robusto)
+    let Ymax2 = 0;
+    for (let i = 0; i <= 180; i++){ const th = Math.PI*i/180;
+      for (let j = 0; j < 360; j += 2){ const ph = Math.PI*j/180;
+        const Y = angular(l, m, Math.sin(th)*Math.cos(ph), Math.sin(th)*Math.sin(ph), Math.cos(th));
+        if (Y*Y > Ymax2) Ymax2 = Y*Y; } }
+    return { n, l, m, rmax, Pmax: Pmax*1.02, Ymax2: Ymax2*1.02, rMostProb, radialNodes, rs, P, total };
+  }
+  let spare = null;
+  function gauss(){
+    if (spare !== null){ const v = spare; spare = null; return v; }
+    let u, v, s;
+    do { u = Math.random()*2 - 1; v = Math.random()*2 - 1; s = u*u + v*v; } while (s >= 1 || s === 0);
+    const f = Math.sqrt(-2*Math.log(s)/s); spare = v*f; return u*f;
+  }
+  // Muestreo por rechazo de |ψ|² = R² · Y² (en r con peso r², en dirección con |Y|²)
+  function sample(info, count, pos, sgn, offset, scale){
+    const { n, l, m, rmax, Pmax, Ymax2 } = info;
+    for (let i = 0; i < count; i++){
+      let r, R;
+      for (;;){ r = Math.random()*rmax; R = radial(n, l, r); if (Math.random()*Pmax < r*r*R*R) break; }
+      let x, y, z, Y;
+      for (;;){
+        x = gauss(); y = gauss(); z = gauss();
+        const L = Math.sqrt(x*x + y*y + z*z); if (L < 1e-9) continue;
+        x /= L; y /= L; z /= L;
+        Y = angular(l, m, x, y, z);
+        if (Math.random()*Ymax2 < Y*Y) break;
+      }
+      const k = (offset + i)*3, rr = r*scale;
+      pos[k] = x*rr; pos[k+1] = y*rr; pos[k+2] = z*rr;
+      sgn[offset + i] = (R*Y < 0) ? -1 : 1;
+    }
+  }
+  return { radial, angular, orbitalInfo, sample, gauss };
+})();
+
+/* =====================================================================
+   2. TEXTOS
+   ===================================================================== */
+const SCENES = [
+  { scale:'≈ 10⁻³ m', title:'Un grano de sal', text:'Todo lo que ves está hecho de átomos.' },
+  { scale:'≈ 10⁻⁹ m', title:'Red cristalina de sal (NaCl)', text:'Los átomos se organizan en estructuras ordenadas. Dorado: sodio (Na⁺). Azul: cloro (Cl⁻).' },
+  { scale:'≈ 10⁻¹⁰ m', title:'Un átomo', text:'Casi todo el átomo es espacio donde el electrón "puede estar". El núcleo (dorado) se muestra agrandado.' },
+  { scale:'≈ 10⁻¹⁵ m', title:'El núcleo', text:'Protones (dorado) y neutrones (gris). Es unas 100 000 veces más pequeño que el átomo.' },
+  { scale:'≈ 10⁻¹⁰ m · átomo de hidrógeno', title:'Laboratorio cuántico', text:'El electrón no tiene una trayectoria definida. Solo podemos hablar de la probabilidad de encontrarlo en cada lugar.' },
+];
+const SUB = { 0:'z', 1:'x', '-1':'y' };
+const DSUB = { 0:'z²', 1:'xz', '-1':'yz', 2:'x²-y²', '-2':'xy' };
+const LNAME = ['s','p','d','f'];
+const fmt = (x, d = 1) => x.toFixed(d).replace('.', ',');   // decimales con coma
+function orbitalLabel(n, l, m){
+  if (l === 0) return `${n}s`;
+  if (l === 1) return `${n}p<sub>${SUB[m]}</sub>`;
+  return `${n}d<sub>${DSUB[m]}</sub>`;
+}
+function orbitalDescription(n, l, m){
+  const rn = n - l - 1, an = l;
+  let shape, extra;
+  if (l === 0){
+    shape = n === 1 ? 'una esfera densa en el centro' : `una esfera con ${rn} capa${rn > 1 ? 's' : ''} interna${rn > 1 ? 's' : ''}`;
+    extra = n === 1
+      ? 'El electrón tiene más probabilidad de estar cerca del núcleo, y esa probabilidad baja suavemente hacia afuera. El radio más probable es justo el radio de Bohr (a₀).'
+      : `Hay ${rn} superficie${rn > 1 ? 's' : ''} esférica${rn > 1 ? 's' : ''} donde la probabilidad es exactamente cero. A cada lado del nodo la función de onda cambia de signo (cambia el color).`;
+  } else if (l === 1){
+    shape = `una mancuerna (dos lóbulos) a lo largo del eje ${SUB[m]}`;
+    extra = `Entre los dos lóbulos hay un plano donde el electrón nunca aparece: un nodo angular. Los lóbulos tienen signo opuesto de ψ.${rn > 0 ? ` Además tiene ${rn} nodo${rn > 1 ? 's' : ''} radial${rn > 1 ? 'es' : ''}: cada lóbulo se divide en una parte interna y otra externa.` : ''}`;
+  } else {
+    if (m === 0){ shape = 'una mancuerna con una "dona" (anillo) alrededor del centro'; extra = 'Los nodos angulares son dos conos. Los lóbulos de arriba y abajo tienen un signo y la dona el signo contrario.'; }
+    else { shape = 'un trébol de cuatro hojas'; extra = `Los cuatro lóbulos alternan el signo de ψ. Los nodos angulares son dos planos${m === 2 ? ' diagonales' : ''} que se cruzan en el núcleo.`; }
+    if (rn > 0) extra += ` También tiene ${rn} nodo${rn > 1 ? 's' : ''} radial${rn > 1 ? 'es' : ''}.`;
+  }
+  const nodes = `Nodos: ${rn} radial${rn !== 1 ? 'es' : ''} + ${an} angular${an !== 1 ? 'es' : ''} = ${n - 1} en total. Un nodo es una región donde la probabilidad de encontrar al electrón es exactamente cero.`;
+  return { desc: `Forma: ${shape}. ${extra}`, nodes };
+}
+
+/* =====================================================================
+   3. ESCENA THREE.JS
+   ===================================================================== */
+const canvas = document.getElementById('c3d');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.05, 400);
+camera.position.set(0, 9.4, 15.0);
+
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.enableZoom = false; controls.enablePan = false;
+controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
+controls.minPolarAngle = 0.3; controls.maxPolarAngle = Math.PI - 0.3;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const hemi = new THREE.HemisphereLight(0xaac4ff, 0x202040, 0.5); scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(5, 9, 7); scene.add(dir);
+const dir2 = new THREE.DirectionalLight(0x4cc9f0, 0.3); dir2.position.set(-6, -3, -5); scene.add(dir2);
+
+// Textura de brillo suave para puntos y sprites
+function glowTexture(size = 64, inner = 1.0){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  grd.addColorStop(0, `rgba(255,255,255,${inner})`);
+  grd.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, size, size);
+  const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+}
+const TEX_GLOW = glowTexture();
+
+// Estrellas lejanas, muy tenues
+(function stars(){
+  const N = 420, p = new Float32Array(N*3);
+  for (let i = 0; i < N; i++){
+    const v = new THREE.Vector3(Phys.gauss(), Phys.gauss(), Phys.gauss()).normalize().multiplyScalar(90 + Math.random()*60);
+    p.set([v.x, v.y, v.z], i*3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  const m = new THREE.PointsMaterial({ color: 0x9fb3ff, size: 0.9, map: TEX_GLOW, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+  scene.add(new THREE.Points(g, m));
+})();
+
+// Utilidad: registrar materiales de un grupo para poder desvanecerlo
+function registerFade(group){
+  group.userData.fades = [];
+  group.traverse(o => {
+    if (o.material && !o.userData.noFade){
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => { m.transparent = true; group.userData.fades.push({ m, base: m.opacity }); });
+    }
+  });
+}
+function applyFade(group, f){
+  if (group.userData.fades) group.userData.fades.forEach(e => { e.m.opacity = e.base*f; });
+  if (group.userData.onFade) group.userData.onFade(f);
+}
+
+/* ---------- Escena 1: grano de sal ---------- */
+const gSalt = new THREE.Group();
+{
+  const geo = new THREE.BoxGeometry(4.6, 4.6, 4.6, 2, 2, 2);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xf2f4fa, roughness: 0.35, metalness: 0.05, transparent: true, opacity: 0.88 });
+  const cube = new THREE.Mesh(geo, mat); gSalt.add(cube);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }));
+  gSalt.add(edges);
+  // Pequeñas irregularidades: cubitos menores pegados
+  const small = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: 0xe9ecf6, roughness: 0.4, transparent: true, opacity: 0.9 }));
+  small.position.set(2.6, -1.9, 1.9); gSalt.add(small);
+  gSalt.rotation.set(0.45, 0.6, 0.1);
+}
+registerFade(gSalt); scene.add(gSalt);
+
+/* ---------- Escena 2: red cristalina de NaCl ---------- */
+const gLattice = new THREE.Group();
+{
+  const a = 2.4;
+  const matNa = new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.45, emissive: 0x443300, emissiveIntensity: 0.35 });
+  const matCl = new THREE.MeshStandardMaterial({ color: 0x4cc9f0, roughness: 0.45, emissive: 0x0a2a3a, emissiveIntensity: 0.4 });
+  const geoNa = new THREE.SphereGeometry(0.5, 28, 20), geoCl = new THREE.SphereGeometry(0.88, 32, 24);
+  const linePts = [];
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++){
+    const isNa = ((i + j + k) % 2 !== 0);
+    const s = new THREE.Mesh(isNa ? geoNa : geoCl, isNa ? matNa : matCl);
+    s.position.set(i*a, j*a, k*a); gLattice.add(s);
+    if (i < 1) linePts.push(i*a, j*a, k*a, (i+1)*a, j*a, k*a);
+    if (j < 1) linePts.push(i*a, j*a, k*a, i*a, (j+1)*a, k*a);
+    if (k < 1) linePts.push(i*a, j*a, k*a, i*a, j*a, (k+1)*a);
+  }
+  const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(linePts, 3));
+  gLattice.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22 })));
+  gLattice.rotation.set(0.35, 0.5, 0);
+}
+registerFade(gLattice); scene.add(gLattice);
+
+/* ---------- Escena 3: el átomo completo ---------- */
+const gAtom = new THREE.Group();
+{
+  const info = Phys.orbitalInfo(1, 0, 0);
+  const N = 9000, pos = new Float32Array(N*3), sg = new Float32Array(N);
+  Phys.sample(info, N, pos, sg, 0, 5.0/info.rmax);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const m = new THREE.PointsMaterial({ color: 0x4cc9f0, size: 0.16, map: TEX_GLOW, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
+  gAtom.add(new THREE.Points(g, m));
+  const nuc = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd166 }));
+  gAtom.add(nuc);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_GLOW, color: 0xffd166, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }));
+  halo.scale.setScalar(0.9); gAtom.add(halo);
+}
+registerFade(gAtom); scene.add(gAtom);
+
+/* ---------- Escena 4: el núcleo (sodio: 11 p + 12 n) ---------- */
+const gNucleus = new THREE.Group();
+const nucleons = [];
+{
+  const Np = 11, Nn = 12, R = 0.78;
+  const pts = [];
+  for (let i = 0; i < Np + Nn; i++){ const v = new THREE.Vector3(Phys.gauss(), Phys.gauss(), Phys.gauss()).normalize().multiplyScalar(Math.cbrt(Math.random())*2.2); pts.push(v); }
+  // relajación: separar esferas que se superponen y mantenerlas compactas
+  for (let it = 0; it < 220; it++){
+    for (let i = 0; i < pts.length; i++){
+      for (let j = i + 1; j < pts.length; j++){
+        const d = new THREE.Vector3().subVectors(pts[j], pts[i]); const L = d.length() || 1e-3;
+        if (L < 2*R*0.96){ d.multiplyScalar((2*R*0.96 - L)/L*0.5); pts[j].add(d); pts[i].sub(d); }
+      }
+      pts[i].multiplyScalar(0.985);
+    }
+  }
+  const matP = new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.5, emissive: 0x332200, emissiveIntensity: 0.3 });
+  const matN = new THREE.MeshStandardMaterial({ color: 0xb8c4d6, roughness: 0.55 });
+  const geo = new THREE.SphereGeometry(R, 28, 20);
+  pts.forEach((p, i) => { const s = new THREE.Mesh(geo, i < Np ? matP : matN); s.position.copy(p); s.userData.base = p.clone(); s.userData.ph = Math.random()*6.28; gNucleus.add(s); nucleons.push(s); });
+  gNucleus.scale.setScalar(1.35);
+}
+registerFade(gNucleus); scene.add(gNucleus);
+
+/* ---------- Escena 5: laboratorio cuántico ---------- */
+const gLab = new THREE.Group(); scene.add(gLab);
+const gOrbital = new THREE.Group(); gLab.add(gOrbital);
+const gBohr = new THREE.Group(); gLab.add(gBohr);
+const gNodes = new THREE.Group(); gOrbital.add(gNodes);
+
+const MAX_PTS = 60000;
+const DISP_R = 5.3;              // radio en pantalla al que se ajusta cada orbital
+const cloudPos = new Float32Array(MAX_PTS*3);
+const cloudSign = new Float32Array(MAX_PTS);
+const cloudRand = new Float32Array(MAX_PTS);
+for (let i = 0; i < MAX_PTS; i++) cloudRand[i] = Math.random();
+
+const cloudGeo = new THREE.BufferGeometry();
+cloudGeo.setAttribute('position', new THREE.BufferAttribute(cloudPos, 3).setUsage(THREE.DynamicDrawUsage));
+cloudGeo.setAttribute('aSign', new THREE.BufferAttribute(cloudSign, 1).setUsage(THREE.DynamicDrawUsage));
+cloudGeo.setAttribute('aRand', new THREE.BufferAttribute(cloudRand, 1));
+cloudGeo.setDrawRange(0, 0);
+
+const cloudMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uProgress: { value: 0 }, uSize: { value: 3.0 }, uScale: { value: 1 }, uPR: { value: renderer.getPixelRatio() },
+    uPhase: { value: 1 }, uOpacity: { value: 1 }, uFade: { value: 1 },
+    uColPos: { value: new THREE.Color(0x4cc9f0) }, uColNeg: { value: new THREE.Color(0xff6b9d) }, uTex: { value: TEX_GLOW },
+  },
+  vertexShader: `
+    attribute float aSign; attribute float aRand;
+    uniform float uProgress, uSize, uScale, uPR, uPhase;
+    uniform vec3 uColPos, uColNeg;
+    varying float vA; varying vec3 vCol;
+    void main(){
+      float ap = clamp((uProgress - aRand*0.65)/0.35, 0.0, 1.0);
+      ap = ap*ap*(3.0-2.0*ap);
+      vec3 p = position * mix(0.15, 1.0, ap);
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = uSize * uScale * uPR * (17.5 / max(0.1, -mv.z)) * (0.4 + 0.6*ap);
+      vA = ap;
+      vCol = (uPhase > 0.5 && aSign < 0.0) ? uColNeg : uColPos;
+    }`,
+  fragmentShader: `
+    uniform float uOpacity, uFade; uniform sampler2D uTex;
+    varying float vA; varying vec3 vCol;
+    void main(){
+      float t = texture2D(uTex, gl_PointCoord).a;
+      float a = t * vA * uOpacity * uFade;
+      gl_FragColor = vec4(vCol * a, a);
+    }`,
+  transparent: true, depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending,
+});
+const cloud = new THREE.Points(cloudGeo, cloudMat); cloud.frustumCulled = false; cloud.userData.noFade = true;
+gOrbital.add(cloud);
+
+// Núcleo del laboratorio
+const labNucleus = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 1 }));
+gOrbital.add(labNucleus);
+const labHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_GLOW, color: 0xffd166, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }));
+labHalo.scale.setScalar(0.7); gOrbital.add(labHalo);
+
+// Mediciones (puntos acumulados)
+const MAX_MEAS = 3000;
+const measPos = new Float32Array(MAX_MEAS*3);
+const measGeo = new THREE.BufferGeometry();
+measGeo.setAttribute('position', new THREE.BufferAttribute(measPos, 3).setUsage(THREE.DynamicDrawUsage));
+measGeo.setDrawRange(0, 0);
+const measMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.22, map: TEX_GLOW, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+const measPoints = new THREE.Points(measGeo, measMat); measPoints.frustumCulled = false; gOrbital.add(measPoints);
+
+// Destellos de medición (pool de sprites)
+const flashes = [];
+for (let i = 0; i < 12; i++){
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_GLOW, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+  s.visible = false; s.userData.t = 1; s.userData.noFade = true; gOrbital.add(s); flashes.push(s);
+}
+
+// Modelo de Bohr
+const bohrRing = (() => {
+  const pts = []; for (let i = 0; i <= 160; i++){ const a = i/160*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a), 0, Math.sin(a))); }
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.18, gapSize: 0.1, transparent: true, opacity: 0.75 }));
+  l.computeLineDistances(); return l;
+})();
+gBohr.add(bohrRing);
+const bohrNucleus = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true }));
+gBohr.add(bohrNucleus);
+const bohrElectron = new THREE.Mesh(new THREE.SphereGeometry(0.17, 24, 16), new THREE.MeshBasicMaterial({ color: 0x4cc9f0, transparent: true }));
+gBohr.add(bohrElectron);
+const bohrGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_GLOW, color: 0x4cc9f0, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+bohrGlow.scale.setScalar(0.8); gBohr.add(bohrGlow);
+const bohrTrail = (() => {
+  const g = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 40 }, () => new THREE.Vector3()));
+  return new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.5 }));
+})();
+gBohr.add(bohrTrail);
+gBohr.visible = false;
+registerFade(gBohr);
+
+// Fotón
+const photon = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_GLOW, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+photon.scale.setScalar(1.1); photon.visible = false; gLab.add(photon);
+const photonTrail = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX_GLOW, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+photonTrail.scale.setScalar(2.2); photonTrail.visible = false; gLab.add(photonTrail);
+
+registerFade(gOrbital);
+gLab.userData.onFade = f => { cloudMat.uniforms.uFade.value = f; applyFade(gOrbital, f); applyFade(gNodes, f); applyFade(gBohr, f*bohr.alpha); };
+
+const sceneGroups = [gSalt, gLattice, gAtom, gNucleus, gLab];
+
+/* =====================================================================
+   4. ESTADO DEL LABORATORIO
+   ===================================================================== */
+const state = {
+  n: 1, l: 0, m: 0, N: 40000,
+  info: null, scale: 1,
+  phase: true, nodes: true, compare: false,
+  cloudHidden: false, measCount: 0,
+  progress: 0, opacityTarget: 1, generating: false, genToken: 0,
+};
+const bohr = { alpha: 0, angle: 0, offset: 0, scaleCur: 1, trail: [] };
+const anim = { photon: null };
+
+function setOrbital(n, l, m, opts = {}){
+  if (l > n - 1) l = n - 1; if (l > 2) l = 2;
+  if (Math.abs(m) > l) m = 0;
+  state.n = n; state.l = l; state.m = m;
+  state.info = Phys.orbitalInfo(n, l, m);
+  state.scale = DISP_R/state.info.rmax;
+  // nube: generación por lotes para no congelar la página
+  const token = ++state.genToken;
+  state.generating = true; state.progress = 0; cloudMat.uniforms.uProgress.value = 0;
+  cloudGeo.setDrawRange(0, 0);
+  let done = 0; const batch = 6000, N = state.N, info = state.info, sc = state.scale;
+  const step = () => {
+    if (token !== state.genToken) return;
+    const c = Math.min(batch, N - done);
+    Phys.sample(info, c, cloudPos, cloudSign, done, sc);
+    done += c;
+    if (done < N){ if (!FAST) requestAnimationFrame(step); return; }
+    cloudGeo.attributes.position.needsUpdate = true;
+    cloudGeo.attributes.aSign.needsUpdate = true;
+    cloudGeo.setDrawRange(0, N);
+    cloudMat.uniforms.uSize.value = 3.1*Math.sqrt(40000/N);
+    state.generating = false;
+    if (FAST){ state.progress = 1; cloudMat.uniforms.uProgress.value = 1; }
+    if (opts.onReady) opts.onReady();
+  };
+  if (FAST){ while (state.generating) step(); } else requestAnimationFrame(step);
+  clearMeasurements();
+  if (!opts.keepCloud) showCloud();
+  buildNodes();
+  updateOrbitalUI();
+  drawRadial(); drawEnergy();
+}
+
+function buildNodes(){
+  while (gNodes.children.length){ const c = gNodes.children.pop(); c.geometry.dispose(); c.material.dispose(); }
+  const { n, l, m, radialNodes } = state.info, sc = state.scale, Rext = DISP_R*0.85;
+  const matFill = () => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false });
+  const matWire = () => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.13, wireframe: true, depthWrite: false });
+  radialNodes.forEach(r => {
+    const g = new THREE.SphereGeometry(r*sc, 40, 24);
+    gNodes.add(new THREE.Mesh(g, matFill()));
+    gNodes.add(new THREE.Mesh(new THREE.SphereGeometry(r*sc, 24, 14), matWire()));
+  });
+  const plane = (nx, ny, nz) => {
+    const g = new THREE.CircleGeometry(Rext, 64);
+    const mesh = new THREE.Mesh(g, matFill());
+    mesh.lookAt(new THREE.Vector3(nx, ny, nz));
+    gNodes.add(mesh);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(Rext*0.995, Rext, 96), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false }));
+    ring.lookAt(new THREE.Vector3(nx, ny, nz)); gNodes.add(ring);
+  };
+  if (l === 1){ if (m === 0) plane(0, 1, 0); else if (m === 1) plane(1, 0, 0); else plane(0, 0, 1); }
+  // Nota: en la escena, el eje "z" del orbital se dibuja vertical (eje y de Three.js). Ver remapeo abajo.
+  if (l === 2){
+    if (m === 0){
+      const h = Rext*0.75, rad = h*Math.tan(54.7356*Math.PI/180);
+      [1, -1].forEach(sgn => {
+        const g = new THREE.ConeGeometry(rad, h, 64, 1, true);
+        const c = new THREE.Mesh(g, matFill()); c.position.y = -sgn*h/2; if (sgn < 0) c.rotation.x = Math.PI; gNodes.add(c);
+      });
+    } else if (m === 1){ plane(1, 0, 0); plane(0, 1, 0); }
+    else if (m === -1){ plane(0, 0, 1); plane(0, 1, 0); }
+    else if (m === 2){ plane(1, 0, 1); plane(1, 0, -1); }
+    else { plane(1, 0, 0); plane(0, 0, 1); }
+  }
+  gNodes.visible = state.nodes;
+  registerFade(gNodes);
+}
+// Remapeo de ejes: el eje z de la física apunta "arriba" en pantalla.
+// Lo resolvemos rotando el grupo del orbital: (x,y,z)_fís → (x, z, -y)_pantalla
+gOrbital.rotation.x = -Math.PI/2;
+// con esa rotación, los planos nodales definidos arriba usan coordenadas de pantalla,
+// así que gNodes se contra-rota para definirse en pantalla.
+gNodes.rotation.x = Math.PI/2;
+// measPoints y cloud comparten el sistema físico (rotado), por eso están dentro de gOrbital.
+
+/* ---------- Mediciones ---------- */
+let measBurst = 0;
+function measure(){
+  if (state.generating || state.measCount >= MAX_MEAS) return;
+  const N = cloudGeo.drawRange.count; if (!N) return;
+  const i = Math.floor(Math.random()*N);
+  const k = state.measCount*3;
+  measPos[k] = cloudPos[i*3]; measPos[k+1] = cloudPos[i*3+1]; measPos[k+2] = cloudPos[i*3+2];
+  state.measCount++;
+  measGeo.attributes.position.needsUpdate = true;
+  measGeo.setDrawRange(0, state.measCount);
+  // destello
+  const f = flashes.find(s => !s.visible) || flashes[0];
+  f.position.set(measPos[k], measPos[k+1], measPos[k+2]); f.visible = true; f.userData.t = 0;
+  // colapso: la nube se oculta
+  state.cloudHidden = true; state.opacityTarget = 0.04;
+  document.getElementById('btnShowCloud').classList.remove('active');
+  updateMeasUI();
+}
+function showCloud(){ state.cloudHidden = false; state.opacityTarget = 1; document.getElementById('btnShowCloud').classList.add('active'); }
+function clearMeasurements(){ state.measCount = 0; measGeo.setDrawRange(0, 0); measBurst = 0; updateMeasUI(); }
+function updateMeasUI(){
+  const el = document.getElementById('measCount');
+  const c = state.measCount;
+  el.innerHTML = `<b>${c}</b>${c === 1 ? 'medición' : 'mediciones'}`;
+  const hintEl = document.getElementById('hint');
+  if (zoom.cur > 3.5){
+    hintEl.textContent = c === 0 ? 'Pulsa "Medir" varias veces: cada punto es una posición posible del electrón'
+      : c < 30 ? 'Cada medición da un solo punto. ¿Dónde crees que aparecerá el siguiente?'
+      : c < 150 ? 'Sigue midiendo... la forma del orbital empieza a aparecer'
+      : 'Muchas mediciones reconstruyen la nube de probabilidad: eso es lo que muestra el orbital';
+  }
+}
+
+/* ---------- Niveles de energía y fotones ---------- */
+const E = n => -13.6/(n*n);
+function wavelengthToColor(nm){
+  // aproximación visual del espectro visible; fuera del visible usamos tonos de la paleta
+  if (nm < 380) return { hex: 0xc8b6ff, name: 'ultravioleta' };
+  if (nm > 750) return { hex: 0xff6b6b, name: 'infrarrojo' };
+  let r = 0, g = 0, b = 0;
+  if (nm < 440){ r = -(nm - 440)/60; b = 1; } else if (nm < 490){ g = (nm - 440)/50; b = 1; }
+  else if (nm < 510){ g = 1; b = -(nm - 510)/20; } else if (nm < 580){ r = (nm - 510)/70; g = 1; }
+  else if (nm < 645){ r = 1; g = -(nm - 645)/65; } else { r = 1; }
+  const c = new THREE.Color(r, g, b).lerp(new THREE.Color(1, 1, 1), 0.25);
+  return { hex: c.getHex(), name: 'visible' };
+}
+function transition(dirn){
+  if (anim.photon || state.generating) return;
+  const n0 = state.n, n1 = n0 + dirn;
+  if (n1 < 1 || n1 > 4) return;
+  const dE = Math.abs(E(n1) - E(n0));
+  const nm = 1239.84/dE;
+  const col = wavelengthToColor(nm);
+  const serie = Math.min(n0, n1) === 1 ? 'serie de Lyman' : Math.min(n0, n1) === 2 ? 'serie de Balmer' : 'serie de Paschen';
+  document.getElementById('photonInfo').innerHTML =
+    `${dirn > 0 ? 'Absorbe' : 'Emite'} un fotón de <b>${nm.toFixed(0)} nm</b> (${col.name}, ${serie}). ΔE = ${fmt(dE, 2)} eV`;
+  let l = state.l, m = state.m; if (l > n1 - 1){ l = n1 - 1; m = 0; }
+  anim.photon = { t: 0, dir: dirn, color: col.hex, next: [n1, l, m], from: n0, to: n1 };
+  photon.material.color.setHex(col.hex); photonTrail.material.color.setHex(col.hex);
+  photon.visible = true; photonTrail.visible = true;
+  anim.photon.vec = new THREE.Vector3(Phys.gauss(), Phys.gauss()*0.4, Phys.gauss()).normalize().multiplyScalar(11);
+}
+function updatePhoton(dt){
+  const a = anim.photon; if (!a) return;
+  a.t += dt/0.9;
+  const e = a.t < 1 ? a.t : 1;
+  const ease = e*e*(3 - 2*e);
+  if (a.dir < 0){ // emisión: sale del núcleo
+    if (!a.switched){ a.switched = true; setOrbital(...a.next, { keepCloud: false }); }
+    photon.position.copy(a.vec).multiplyScalar(ease).add(gOrbital.position);
+    photon.material.opacity = 1 - ease*0.9; photonTrail.material.opacity = 0.35*(1 - ease);
+  } else {       // absorción: llega al núcleo
+    photon.position.copy(a.vec).multiplyScalar(1 - ease).add(gOrbital.position);
+    photon.material.opacity = 0.2 + 0.8*ease; photonTrail.material.opacity = 0.3*ease;
+    if (a.t >= 1 && !a.switched){ a.switched = true; setOrbital(...a.next); }
+  }
+  photonTrail.position.copy(photon.position);
+  if (a.t >= 1.15){ photon.visible = false; photonTrail.visible = false; anim.photon = null; }
+}
+
+/* =====================================================================
+   5. GRÁFICAS 2D (canvas)
+   ===================================================================== */
+function setupCanvas(cv){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = cv.clientWidth || parseInt(cv.getAttribute('width')), h = parseInt(cv.getAttribute('height'));
+  cv.width = w*dpr; cv.height = h*dpr; cv.style.height = h + 'px';
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.font = '13px Poppins, sans-serif'; g.textBaseline = 'middle';
+  return { g, w, h };
+}
+const cvRadial = document.getElementById('cvRadial');
+let radialHover = null;
+function drawRadial(){
+  const { g, w, h } = setupCanvas(cvRadial);
+  const info = state.info; if (!info) return;
+  g.clearRect(0, 0, w, h);
+  const padL = 34, padR = 12, padT = 12, padB = 26;
+  const X = r => padL + (r/info.rmax)*(w - padL - padR);
+  const Y = p => h - padB - (p/info.Pmax)*(h - padT - padB);
+  // ejes discretos
+  g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(padL, padT); g.lineTo(padL, h - padB); g.lineTo(w - padR, h - padB); g.stroke();
+  // marcas del eje r
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.font = '12px Poppins, sans-serif'; g.textAlign = 'center';
+  const stepR = info.rmax > 40 ? 10 : info.rmax > 16 ? 5 : info.rmax > 8 ? 2 : 1;
+  for (let r = 0; r <= info.rmax; r += stepR){ g.fillText(r, X(r), h - padB + 11); g.fillRect(X(r), h - padB, 1, 3); }
+  g.fillText('r (en radios de Bohr a₀)', (padL + w - padR)/2, h - 6);
+  g.save(); g.translate(10, (padT + h - padB)/2); g.rotate(-Math.PI/2); g.fillText('P(r)', 0, 0); g.restore();
+  // nodos radiales
+  info.radialNodes.forEach(rn => {
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(X(rn), padT); g.lineTo(X(rn), h - padB); g.stroke(); g.setLineDash([]);
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.fillText('nodo', X(rn), padT + 6);
+  });
+  // área bajo la curva, coloreada por signo de R
+  const N = info.rs.length, stride = Math.max(1, Math.floor(N/600));
+  g.lineWidth = 2;
+  let i0 = 0;
+  while (i0 < N){
+    const sgn = Math.sign(Phys.radial(info.n, info.l, info.rs[i0] + 1e-9)) || 1;
+    let i1 = i0;
+    while (i1 < N && (Math.sign(Phys.radial(info.n, info.l, info.rs[i1] + 1e-9)) || 1) === sgn && info.rs[i1] <= info.rmax) i1 += stride;
+    const col = sgn > 0 ? '#4cc9f0' : '#ff6b9d';
+    g.beginPath(); g.moveTo(X(info.rs[i0]), Y(0));
+    for (let i = i0; i < Math.min(i1 + stride, N); i += stride){ if (info.rs[i] > info.rmax) break; g.lineTo(X(info.rs[i]), Y(info.P[i])); }
+    g.lineTo(X(Math.min(info.rs[Math.min(i1, N - 1)], info.rmax)), Y(0)); g.closePath();
+    g.fillStyle = sgn > 0 ? 'rgba(76,201,240,.18)' : 'rgba(255,107,157,.18)'; g.fill();
+    g.beginPath();
+    for (let i = i0; i < Math.min(i1 + stride, N); i += stride){ if (info.rs[i] > info.rmax) break; i === i0 ? g.moveTo(X(info.rs[i]), Y(info.P[i])) : g.lineTo(X(info.rs[i]), Y(info.P[i])); }
+    g.strokeStyle = col; g.stroke();
+    if (i1 >= N || info.rs[i1] > info.rmax) break;
+    i0 = i1;
+  }
+  // radio más probable
+  g.strokeStyle = '#ffd166'; g.setLineDash([4, 3]); g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(X(info.rMostProb), Y(info.Pmax/1.02)); g.lineTo(X(info.rMostProb), h - padB); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#ffd166'; g.beginPath(); g.arc(X(info.rMostProb), Y(info.Pmax/1.02), 4, 0, 6.29); g.fill();
+  g.textAlign = X(info.rMostProb) > w*0.5 ? 'right' : 'left';
+  g.fillText(`r más probable = ${fmt(info.rMostProb)} a₀`, X(info.rMostProb) + (g.textAlign === 'left' ? 8 : -8), padT + 6);
+  // tooltip al pasar el mouse
+  if (radialHover !== null){
+    const r = Math.max(0, Math.min(info.rmax, (radialHover - padL)/(w - padL - padR)*info.rmax));
+    const R = Phys.radial(info.n, info.l, r), p = r*r*R*R;
+    g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1; g.beginPath(); g.moveTo(X(r), padT); g.lineTo(X(r), h - padB); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(X(r), Y(p), 4, 0, 6.29); g.fill();
+    const txt = `r = ${fmt(r)} a₀ · P = ${(p/info.Pmax*100).toFixed(0)} % del máximo`;
+    g.font = '12px Poppins, sans-serif'; const tw = g.measureText(txt).width + 14;
+    let bx = X(r) + 10; if (bx + tw > w - 4) bx = X(r) - tw - 10; const by = Math.max(padT, Y(p) - 26);
+    g.fillStyle = 'rgba(10,14,31,.92)'; g.strokeStyle = 'rgba(255,255,255,.2)';
+    g.beginPath(); g.roundRect ? g.roundRect(bx, by, tw, 22, 6) : g.rect(bx, by, tw, 22); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.textAlign = 'left'; g.fillText(txt, bx + 7, by + 11);
+  }
+  document.getElementById('radialNote').textContent =
+    `Probabilidad de encontrar al electrón a una distancia r del núcleo. Máximo en r = ${fmt(info.rMostProb)} a₀ ≈ ${fmt(info.rMostProb*0.0529, 3)} nm.`;
+}
+cvRadial.addEventListener('mousemove', e => { const rect = cvRadial.getBoundingClientRect(); radialHover = e.clientX - rect.left; drawRadial(); });
+cvRadial.addEventListener('mouseleave', () => { radialHover = null; drawRadial(); });
+
+const cvEnergy = document.getElementById('cvEnergy');
+function drawEnergy(){
+  const { g, w, h } = setupCanvas(cvEnergy);
+  g.clearRect(0, 0, w, h);
+  const padL = 112, padR = 14, padT = 24, padB = 14;
+  const Y = e => padT + (-e/13.6)*(h - padT - padB);  // E=0 arriba, -13,6 abajo (escala lineal real)
+  const x0 = padL, x1 = w - padR;
+  g.font = '12px Poppins, sans-serif';
+  // ionización
+  g.strokeStyle = 'rgba(255,255,255,.22)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x0, Y(0)); g.lineTo(x1, Y(0)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.textAlign = 'right'; g.fillText('E = 0 · electrón libre', x1, Y(0) - 10);
+  const ns = [1, 2, 3, 4, 5];
+  const labelY = {};  // separar etiquetas que se amontonan
+  let lastY = Y(E(5)) - 2;
+  ns.slice().reverse().forEach(n => { let y = Math.max(Y(E(n)), lastY + 14); if (n === 5) y = Y(E(5)) + 2; labelY[n] = y; lastY = y; });
+  ns.forEach(n => {
+    const y = Y(E(n)), sel = n === state.n;
+    g.strokeStyle = sel ? '#4cc9f0' : 'rgba(255,255,255,.5)'; g.lineWidth = sel ? 3 : 1.5;
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+    if (sel){ g.shadowColor = '#4cc9f0'; g.shadowBlur = 12; g.stroke(); g.shadowBlur = 0; }
+    g.fillStyle = sel ? '#fff' : 'rgba(255,255,255,.6)'; g.textAlign = 'right';
+    g.font = sel ? '600 12px Poppins, sans-serif' : '12px Poppins, sans-serif';
+    g.fillText(`n=${n}  ${fmt(E(n), 2)} eV`, x0 - 12, labelY[n]);
+    g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x0 - 9, labelY[n]); g.lineTo(x0 - 2, y); g.stroke();
+  });
+  // electrón en su nivel
+  const ye = Y(E(state.n)), xe = x0 + (x1 - x0)*0.42;
+  g.fillStyle = '#4cc9f0'; g.shadowColor = '#4cc9f0'; g.shadowBlur = 14;
+  g.beginPath(); g.arc(xe, ye, 6, 0, 6.29); g.fill(); g.shadowBlur = 0;
+  g.fillStyle = 'rgba(255,255,255,.7)'; g.textAlign = 'left'; g.font = '12px Poppins, sans-serif'; g.fillText('electrón', xe + 12, ye + (ye > h - 30 ? -12 : 12));
+  document.getElementById('btnExcite').disabled = state.n >= 4;
+  document.getElementById('btnRelax').disabled = state.n <= 1;
+}
+
+const cvHeis = document.getElementById('cvHeis'), slHeis = document.getElementById('slHeis');
+function drawHeis(){
+  const { g, w, h } = setupCanvas(cvHeis);
+  g.clearRect(0, 0, w, h);
+  const s = parseFloat(slHeis.value), sx = s, sp = 0.5/s;
+  const half = w/2 - 6, base = h - 22;
+  const gaussCurve = (cx, sigma, col, label) => {
+    const k = 0.28, amp = Math.max(8, Math.min(base - 18, 26/sigma));
+    g.beginPath();
+    for (let i = 0; i <= half; i++){ const u = (i - half/2)/(half*k); const y = base - amp*Math.exp(-u*u/(2*sigma*sigma)); i === 0 ? g.moveTo(cx + i, y) : g.lineTo(cx + i, y); }
+    g.strokeStyle = col; g.lineWidth = 2; g.stroke();
+    g.lineTo(cx + half, base); g.lineTo(cx, base); g.closePath();
+    g.fillStyle = col.replace(')', ',.18)').replace('rgb', 'rgba'); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.textAlign = 'center'; g.font = '13px Poppins, sans-serif'; g.fillText(label, cx + half/2, h - 8);
+    g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = 1; g.beginPath(); g.moveTo(cx, base); g.lineTo(cx + half, base); g.stroke();
+  };
+  gaussCurve(4, sx, 'rgb(76,201,240)', `Posición · Δx ${sx < 0.3 ? 'pequeño' : sx < 0.7 ? 'medio' : 'grande'}`);
+  gaussCurve(w/2 + 2, sp, 'rgb(255,107,157)', `Momento · Δp ${sp > 1.6 ? 'grande' : sp > 0.7 ? 'medio' : 'pequeño'}`);
+  g.strokeStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.moveTo(w/2, 6); g.lineTo(w/2, h - 6); g.stroke();
+}
+slHeis.addEventListener('input', drawHeis);
+
+/* =====================================================================
+   6. INTERFAZ
+   ===================================================================== */
+const selN = document.getElementById('selN'), selL = document.getElementById('selL'), selM = document.getElementById('selM');
+function fillSelects(){
+  selN.innerHTML = [1, 2, 3, 4].map(n => `<option value="${n}" ${n === state.n ? 'selected' : ''}>${n}</option>`).join('');
+  const lmax = Math.min(2, state.n - 1);
+  selL.innerHTML = Array.from({ length: lmax + 1 }, (_, l) => `<option value="${l}" ${l === state.l ? 'selected' : ''}>${l} (${LNAME[l]})</option>`).join('');
+  const ms = []; for (let m = -state.l; m <= state.l; m++) ms.push(m);
+  selM.innerHTML = ms.map(m => `<option value="${m}" ${m === state.m ? 'selected' : ''}>${m > 0 ? '+' + m : m}${state.l === 1 ? ' (' + SUB[m] + ')' : state.l === 2 ? ' (' + DSUB[m] + ')' : ''}</option>`).join('');
+}
+[selN, selL, selM].forEach(s => s.addEventListener('change', () => {
+  const n = +selN.value; let l = +selL.value, m = +selM.value;
+  if (s === selN){ if (l > Math.min(2, n - 1)){ l = Math.min(2, n - 1); m = 0; } }
+  if (s === selL){ m = 0; }
+  setOrbital(n, l, m);
+}));
+document.querySelectorAll('.orb').forEach(b => b.addEventListener('click', () => { const [n, l, m] = b.dataset.o.split(',').map(Number); setOrbital(n, l, m); }));
+
+function updateOrbitalUI(){
+  const key = `${state.n},${state.l},${state.m}`;
+  document.querySelectorAll('.orb').forEach(b => b.classList.toggle('active', b.dataset.o === key));
+  fillSelects();
+  document.getElementById('orbName').innerHTML = `Orbital ${orbitalLabel(state.n, state.l, state.m)} &nbsp;<span class="muted">n=${state.n}, l=${state.l}, m=${state.m > 0 ? '+' + state.m : state.m}</span>`;
+  const d = orbitalDescription(state.n, state.l, state.m);
+  document.getElementById('orbDesc').textContent = d.desc;
+  document.getElementById('orbNodes').textContent = d.nodes;
+}
+
+document.getElementById('tgPhase').addEventListener('change', e => { state.phase = e.target.checked; cloudMat.uniforms.uPhase.value = state.phase ? 1 : 0; });
+document.getElementById('tgNodes').addEventListener('change', e => { state.nodes = e.target.checked; gNodes.visible = state.nodes; });
+document.getElementById('tgRotate').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
+const tgBohr = document.getElementById('tgBohr');
+tgBohr.addEventListener('change', e => { state.compare = e.target.checked; gBohr.visible = true; });
+document.getElementById('selPts').addEventListener('change', e => { state.N = +e.target.value; setOrbital(state.n, state.l, state.m); });
+
+document.getElementById('btnMeasure').addEventListener('click', measure);
+document.getElementById('btnMeasure25').addEventListener('click', () => { measBurst += 25; });
+document.getElementById('btnShowCloud').addEventListener('click', showCloud);
+document.getElementById('btnClear').addEventListener('click', clearMeasurements);
+document.getElementById('btnExcite').addEventListener('click', () => transition(+1));
+document.getElementById('btnRelax').addEventListener('click', () => transition(-1));
+document.getElementById('btnTeacher').addEventListener('click', () => document.getElementById('modal').classList.add('open'));
+document.getElementById('btnCloseModal').addEventListener('click', () => document.getElementById('modal').classList.remove('open'));
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') e.currentTarget.classList.remove('open'); });
+
+/* ---------- Zoom entre escenas ---------- */
+const ZOOM_FACTOR = 10;   // cada escena está 10× "más cerca" que la anterior (factor visual, no real)
+const zoom = { target: 0, cur: 0, dragging: false };
+const slZoom = document.getElementById('slZoom');
+slZoom.addEventListener('input', () => { zoom.target = parseFloat(slZoom.value); });
+slZoom.addEventListener('pointerdown', () => zoom.dragging = true);
+window.addEventListener('pointerup', () => zoom.dragging = false);
+document.querySelectorAll('#dots button').forEach(b => b.addEventListener('click', () => { zoom.target = +b.dataset.i; }));
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoom.target = Math.max(0, Math.min(4, zoom.target + Math.sign(e.deltaY)*0.22)); }, { passive: false });
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') zoom.target = Math.min(4, Math.round(zoom.target) + 1);
+  if (e.key === 'ArrowLeft') zoom.target = Math.max(0, Math.round(zoom.target) - 1);
+  if (e.key === 'm' || e.key === 'M') if (zoom.cur > 3.5) measure();
+  if (e.key === 'b' || e.key === 'B') if (zoom.cur > 3.5){ tgBohr.checked = !tgBohr.checked; tgBohr.dispatchEvent(new Event('change')); }
+  if (e.key === 'Escape') document.getElementById('modal').classList.remove('open');
+});
+
+// Enlace directo: #escena=5&orbital=3,2,0
+(function parseHash(){
+  const h = HASH;
+  const esc = parseFloat(h.get('escena')); if (esc >= 1 && esc <= 5){ zoom.target = zoom.cur = esc - 1; }
+  const orb = h.get('orbital'); if (orb){ const p = orb.split(',').map(Number); if (p.length === 3) { state.n = p[0]; state.l = p[1]; state.m = p[2]; } }
+  if (h.get('bohr') === '1'){ tgBohr.checked = true; state.compare = true; gBohr.visible = true; if (FAST) bohr.alpha = 1; }
+  if (h.get('heis') === '1') document.querySelector('details').open = true;
+})();
+
+/* ---------- Captions y paneles según la escena ---------- */
+const capScale = document.getElementById('capScale'), capTitle = document.getElementById('capTitle'), capText = document.getElementById('capText'), caption = document.getElementById('caption');
+let capIdx = -1, labOn = null;
+function updateCaption(t){
+  const i = Math.round(t), d = Math.abs(t - i);
+  if (i !== capIdx){ capIdx = i; capScale.textContent = SCENES[i].scale; capTitle.textContent = SCENES[i].title; capText.textContent = SCENES[i].text; }
+  caption.style.opacity = Math.max(0, 1 - d*2.6).toFixed(2);
+  document.querySelectorAll('#dots button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
+  if (!zoom.dragging) slZoom.value = t;
+  const lab = t > 3.55;
+  if (lab !== labOn){
+    labOn = lab;
+    document.querySelectorAll('.lab-ui').forEach(el => el.classList.toggle('on', lab));
+    document.getElementById('measBox').classList.toggle('off', !lab);
+    document.getElementById('hint').textContent = lab ? '' : 'Usa la rueda del mouse o el deslizador para acercarte · arrastra para girar';
+    if (lab) updateMeasUI();
+  }
+}
+
+/* ---------- Etiquetas 3D (Bohr vs Schrödinger) ---------- */
+const lblBohr = document.getElementById('lblBohr'), lblSch = document.getElementById('lblSch');
+const _v = new THREE.Vector3(), _dir = new THREE.Vector3(), _right = new THREE.Vector3();
+function placeLabel(el, group, dy, alpha){
+  _v.setFromMatrixPosition(group.matrixWorld); _v.y -= dy; _v.project(camera);
+  const x = (_v.x*0.5 + 0.5)*window.innerWidth, y = (-_v.y*0.5 + 0.5)*window.innerHeight;
+  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.opacity = alpha.toFixed(2);
+}
+
+/* =====================================================================
+   7. BUCLE DE ANIMACIÓN
+   ===================================================================== */
+const clock = new THREE.Clock();
+let fpsAcc = 0, fpsN = 0, fpsT = 0;
+const smooth = (a, b, k) => a + (b - a)*k;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05), time = clock.elapsedTime;
+
+  // zoom continuo con easing
+  zoom.cur = smooth(zoom.cur, zoom.target, Math.min(1, dt*3.2));
+  if (Math.abs(zoom.cur - zoom.target) < 0.0005) zoom.cur = zoom.target;
+  updateCaption(zoom.cur);
+  sceneGroups.forEach((g, i) => {
+    const d = zoom.cur - i;
+    const s = Math.pow(ZOOM_FACTOR, d);
+    const ad = Math.abs(d);
+    const fade = ad < 0.3 ? 1 : ad > 0.95 ? 0 : 1 - (ad - 0.3)/0.65;
+    const f = fade*fade*(3 - 2*fade);
+    g.visible = f > 0.003;
+    if (g.visible){ g.scale.setScalar(s*(i === 3 ? 1.35 : 1)); applyFade(g, f); }
+  });
+
+  // animaciones propias de cada escena
+  gSalt.rotation.y += dt*0.12;
+  gLattice.rotation.y += dt*0.15;
+  nucleons.forEach(s => { const b = s.userData.base, p = s.userData.ph; s.position.set(b.x + Math.sin(time*2.1 + p)*0.05, b.y + Math.cos(time*1.7 + p)*0.05, b.z + Math.sin(time*1.3 + p*2)*0.05); });
+  gNucleus.rotation.y += dt*0.1;
+
+  // laboratorio
+  if (gLab.visible){
+    if (state.generating) { /* esperando lotes */ }
+    else if (state.progress < 1){ state.progress = Math.min(1, state.progress + dt/1.1); cloudMat.uniforms.uProgress.value = state.progress; }
+    cloudMat.uniforms.uOpacity.value = smooth(cloudMat.uniforms.uOpacity.value, state.opacityTarget, Math.min(1, dt*6));
+    cloudMat.uniforms.uScale.value = gLab.scale.x*gOrbital.scale.x;
+    labHalo.material.opacity = 0.55 + 0.15*Math.sin(time*2.5);
+
+    // comparación con Bohr: el orbital se corre a la izquierda y aparece Bohr a la derecha
+    bohr.alpha = smooth(bohr.alpha, state.compare ? 1 : 0, Math.min(1, dt*4));
+    const off = 3.6*bohr.alpha, scl = 1 - 0.42*bohr.alpha;
+    // los dos átomos se separan en la dirección "derecha" de la cámara, así siempre quedan lado a lado
+    camera.getWorldDirection(_dir); _right.crossVectors(_dir, camera.up).setY(0).normalize();
+    gOrbital.position.copy(_right).multiplyScalar(-off); gOrbital.scale.setScalar(scl);
+    gBohr.position.copy(_right).multiplyScalar(off); gBohr.scale.setScalar(scl);
+    gBohr.visible = bohr.alpha > 0.01;
+    if (gBohr.visible){
+      const rB = state.n*state.n*state.scale;   // radio de Bohr n²·a₀ en la misma escala del orbital
+      bohrRing.scale.setScalar(rB);
+      bohr.angle += dt*2.4/state.n;
+      bohrElectron.position.set(Math.cos(bohr.angle)*rB, 0, Math.sin(bohr.angle)*rB);
+      bohrGlow.position.copy(bohrElectron.position);
+      const tp = bohrTrail.geometry.attributes.position; const n = tp.count;
+      for (let i = 0; i < n; i++){ const a = bohr.angle - i*0.05; tp.setXYZ(i, Math.cos(a)*rB, 0, Math.sin(a)*rB); }
+      tp.needsUpdate = true;
+      applyFade(gBohr, bohr.alpha*cloudMat.uniforms.uFade.value);
+    }
+    const lf = bohr.alpha*cloudMat.uniforms.uFade.value;
+    const dy = DISP_R*0.95*scl*gLab.scale.x;
+    placeLabel(lblBohr, gBohr, dy, lf);
+    placeLabel(lblSch, gOrbital, dy, lf);
+
+    // mediciones en ráfaga
+    if (measBurst > 0){ measure(); measBurst--; }
+    flashes.forEach(s => { if (!s.visible) return; s.userData.t += dt*1.6; const t = s.userData.t; if (t >= 1){ s.visible = false; return; } s.scale.setScalar(1.3*(1 - t) + 0.25); s.material.opacity = 1 - t; });
+
+    updatePhoton(dt);
+  } else {
+    lblBohr.style.opacity = 0; lblSch.style.opacity = 0;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+
+  fpsAcc += dt; fpsN++;
+  if (time - fpsT > 1){ document.getElementById('fps').textContent = Math.round(fpsN/fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; fpsT = time; }
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  cloudMat.uniforms.uPR.value = renderer.getPixelRatio();
+  drawRadial(); drawEnergy(); drawHeis();
+});
+
+/* ---------- arranque ---------- */
+setOrbital(state.n, state.l, state.m);
+drawHeis();
+showCloud();
+{ const nm = parseInt(HASH.get('mediciones')) || 0;
+  if (nm > 0){ if (FAST) for (let i = 0; i < nm; i++) measure(); else measBurst = nm; }
+  const acc = HASH.get('accion'); if (acc === 'excitar') transition(+1); else if (acc === 'emitir') transition(-1); }
+updateCaption(zoom.cur);
+animate();
+})();
+</script>
+</body>
+</html>
